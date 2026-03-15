@@ -148,6 +148,8 @@ const App: React.FC = () => {
   const [clipRandomCount, setClipRandomCount] = useState(5);
   const [clipBeatInterval, setClipBeatInterval] = useState(2);
   const [clipEqualParts, setClipEqualParts] = useState(4);
+  const [clipVideoUrl, setClipVideoUrl] = useState('');
+  const [clipUrlLoading, setClipUrlLoading] = useState(false);
   const clipVideoRef = useRef<HTMLVideoElement>(null);
 
   const [scenePrompts, setScenePrompts] = useState<string[]>(Array(9).fill("Subtle cinematic motion, elegant model moves naturally."));
@@ -414,6 +416,23 @@ const App: React.FC = () => {
     setClipState(prev => ({ ...prev, videoFile: url, config: { ...prev.config, sourceVideoUrl: url } }));
   };
   const onClipVideoLoaded = () => { if (clipVideoRef.current) setClipState(prev => ({ ...prev, videoDuration: clipVideoRef.current!.duration })); };
+  const onClipVideoFromUrl = async () => {
+    const url = clipVideoUrl.trim();
+    if (!url) return;
+    setClipUrlLoading(true);
+    try {
+      // Try to fetch the video and create a blob URL for CORS-safe playback
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      setClipState(prev => ({ ...prev, videoFile: blobUrl, config: { ...prev.config, sourceVideoUrl: blobUrl } }));
+    } catch {
+      // If fetch fails (CORS), use the URL directly — video element may still load it
+      setClipState(prev => ({ ...prev, videoFile: url, config: { ...prev.config, sourceVideoUrl: url } }));
+    }
+    setClipUrlLoading(false);
+  };
   const applyClipAction = () => {
     const dur = clipState.videoDuration; if (!dur) return;
     let segs: ClipSegment[] = [];
@@ -1187,12 +1206,32 @@ const App: React.FC = () => {
         {step === AppStep.CLIP_EDITOR && (
           <div className="animate-in max-w-5xl mx-auto space-y-4">
             {/* Upload */}
-            <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6">
-              <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-3 block">upload or select video</label>
+            <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6 space-y-4">
+              <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider block">upload or paste video link</label>
+
+              {/* URL Input */}
+              <div className="flex gap-2">
+                <input type="text" value={clipVideoUrl} onChange={(e) => setClipVideoUrl(e.target.value)}
+                  placeholder="paste video URL here (mp4, webm...)"
+                  className="flex-1 input-wild rounded-xl py-2.5 px-3 text-sm" />
+                <button onClick={onClipVideoFromUrl} disabled={!clipVideoUrl.trim() || clipUrlLoading}
+                  className="btn-neon px-4 py-2.5 rounded-xl text-xs font-bold lowercase disabled:opacity-30 flex items-center gap-1.5 whitespace-nowrap">
+                  {clipUrlLoading ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-link"></i>}
+                  {clipUrlLoading ? 'loading...' : 'load'}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-white/5"></div>
+                <span className="text-[10px] font-bold text-zinc-600 uppercase">or</span>
+                <div className="flex-1 h-px bg-white/5"></div>
+              </div>
+
+              {/* File Upload */}
               <label className="block w-full glass-static rounded-2xl p-6 md:p-8 text-center cursor-pointer hover:border-violet-500/30 transition-all border border-dashed border-white/10">
                 <input type="file" accept="video/*" className="hidden" onChange={onClipVideoUpload} />
                 {clipState.videoFile ? (
-                  <video ref={clipVideoRef} src={clipState.videoFile} className="w-full max-h-64 rounded-xl mx-auto" controls onLoadedMetadata={onClipVideoLoaded} />
+                  <video ref={clipVideoRef} src={clipState.videoFile} className="w-full max-h-64 rounded-xl mx-auto" controls onLoadedMetadata={onClipVideoLoaded} crossOrigin="anonymous" />
                 ) : (
                   <div className="opacity-50"><i className="fa-solid fa-film text-3xl text-zinc-600 mb-3"></i><p className="text-sm font-bold text-zinc-500 lowercase">drop a video file here</p></div>
                 )}
