@@ -89,27 +89,27 @@ export const secureRemoveItem = (key: string): void => {
  * @param apiKey API key to validate
  * @param provider Provider name for specific validation
  */
-export const validateApiKeyFormat = (apiKey: string, provider: 'GEMINI' | 'FAL'): boolean => {
+export const validateApiKeyFormat = (apiKey: string, provider: 'GEMINI' | 'FAL' | 'HUGGINGFACE' | 'PRODIA' | 'TOGETHER'): boolean => {
     if (!apiKey || typeof apiKey !== 'string') return false;
 
-    // Remove whitespace
     const cleaned = apiKey.trim();
 
-    // Provider-specific validation
     switch (provider) {
         case 'GEMINI':
-            // Gemini keys typically start with specific patterns
-            // Format: AIzaSy... (39 characters total)
             return /^AIza[A-Za-z0-9_-]{35}$/.test(cleaned);
 
         case 'FAL':
-            // FAL keys can have various formats
-            // Be lenient on format, rely on live API validation for correctness
-            // Just ensure: reasonable length, alphanumeric characters
-            if (cleaned.length < 1) return false;
+            return cleaned.length >= 1;
 
-            // Accept ANY characters - let API be the judge
-            return true;
+        case 'HUGGINGFACE':
+            // HF tokens start with hf_
+            return /^hf_[A-Za-z0-9]{20,}$/.test(cleaned) || cleaned.length >= 10;
+
+        case 'PRODIA':
+            return cleaned.length >= 10;
+
+        case 'TOGETHER':
+            return cleaned.length >= 10;
 
         default:
             return false;

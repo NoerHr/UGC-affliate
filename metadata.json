@@ -1,6 +1,6 @@
 {
-  "name": "AI Image Storyboard Pro",
-  "description": "Professional tool for creating and extracting 3x3 image storyboards from model and product photos with advanced AI editing.",
+  "name": "CreatorKit AI",
+  "description": "Create stunning content with AI — poster generator, storyboard creator, video clip editor, and multi-provider image generation.",
   "requestFramePermissions": [
     "camera"
   ]

@@ -14,7 +14,18 @@ export interface CostBreakdown {
 // FAL AI Pricing (REAL rates from fal.ai)
 const COST_PER_IMAGE_MAP: Record<string, number> = {
     'nano-banana-pro': 0.025,  // $0.025 per image (FAL AI Nano Banana Pro)
-    'seedream-4.5': 0.05        // $0.05 per image (FAL AI Seedream 4.5)
+    'seedream-4.5': 0.05,       // $0.05 per image (FAL AI Seedream 4.5)
+    // Free providers
+    'pollinations': 0.00,       // Free - no API key needed
+    'huggingface': 0.00,        // Free tier
+    'puter': 0.00,              // Free - user-pays model
+    'prodia': 0.00,             // Free tier (100/day)
+    'together-free': 0.00,      // Free credits
+    'together-paid': 0.003,     // Together paid
+    // Poster generation
+    'poster-free': 0.00,
+    'poster-gemini': 0.025,
+    'poster-fal': 0.025,
 };
 
 const COST_PER_IMAGE = 0.025; // Default to nano-banana-pro pricing
@@ -112,7 +123,7 @@ export function calculateTotalCost(
     imageCount: number,
     videos: Array<{ model: string; duration: number }>
 ): CostBreakdown {
-    const imageGeneration = calculateImageCost(imageCount);
+    const imageGeneration = calculateImageCost() * imageCount;
 
     let videoGeneration = 0;
     let totalDuration = 0;
@@ -177,7 +188,7 @@ export function usdToIdr(usd: number): number {
 // ============================================
 
 export interface CostEntry {
-    type: 'image' | 'video' | 'upscale' | 'edit';
+    type: 'image' | 'video' | 'upscale' | 'edit' | 'poster';
     operation: string;
     amount: number;
     timestamp: number;
