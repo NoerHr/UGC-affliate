@@ -137,7 +137,7 @@ const App: React.FC = () => {
     productImage: null, config: getDefaultPosterConfig(), results: [], isGenerating: false, generationProgress: 0
   });
   const [posterSubStep, setPosterSubStep] = useState<'upload' | 'style' | 'settings' | 'results'>('upload');
-  const [posterProvider, setPosterProvider] = useState<AiProvider>('POLLINATIONS');
+  const [posterProvider, setPosterProvider] = useState<AiProvider>('PUTER');
 
   const [clipState, setClipState] = useState<ClipEditorState>({
     videoFile: null, videoDuration: 0, clips: [], previewUrl: null, isProcessing: false,
@@ -386,7 +386,13 @@ const App: React.FC = () => {
         let imageUrl = '';
         const varPrompt = `${prompt} Variation ${i + 1} of ${count}, unique composition.`;
         if (posterProvider === 'POLLINATIONS') {
-          imageUrl = await generateImageViaPollinations(varPrompt, formatDef.width, formatDef.height);
+          try {
+            imageUrl = await generateImageViaPollinations(varPrompt, formatDef.width, formatDef.height);
+          } catch {
+            // Pollinations is frequently down — auto-fallback to Puter
+            console.warn('[Poster] Pollinations failed, falling back to Puter.js...');
+            imageUrl = await generateImageViaPuter(varPrompt);
+          }
         } else if (posterProvider === 'HUGGINGFACE') {
           const hfKey = secureGetItem('USER_HF_API_KEY') || '';
           imageUrl = await generateImageViaHuggingFace(varPrompt, 'black-forest-labs/FLUX.1-schnell', hfKey);
@@ -1037,10 +1043,10 @@ const App: React.FC = () => {
                 <div className="glass rounded-2xl p-4 space-y-3">
                   <label className="text-[10px] font-bold text-zinc-600 uppercase tracking-wider">image provider</label>
                   <div className="flex flex-wrap gap-1.5">
-                    {(['POLLINATIONS','PUTER','HUGGINGFACE','PRODIA','TOGETHER'] as AiProvider[]).map(p => (
+                    {(['PUTER','POLLINATIONS','HUGGINGFACE','PRODIA','TOGETHER'] as AiProvider[]).map(p => (
                       <button key={p} onClick={() => setPosterProvider(p)}
                         className={`chip px-3 py-2 rounded-xl text-[10px] font-bold lowercase ${posterProvider === p ? 'chip-active' : 'text-zinc-500'}`}>
-                        {p === 'POLLINATIONS' ? 'pollinations (free)' : p === 'PUTER' ? 'puter (free)' : p.toLowerCase()}
+                        {p === 'PUTER' ? 'puter (free)' : p === 'POLLINATIONS' ? 'pollinations (unstable)' : p.toLowerCase()}
                       </button>
                     ))}
                   </div>

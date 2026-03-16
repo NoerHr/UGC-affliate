@@ -1,19 +1,19 @@
-// Pollinations.ai Service — 100% free, no API key, no login
-// Uses simple URL-based image generation
+// Pollinations.ai Service — free image generation
+// NOTE: As of March 2026, Pollinations frequently returns 500 errors.
+// The app auto-falls back to Puter.js when this happens.
 
 function sanitizePrompt(prompt: string): string {
-  // Remove emojis and non-ASCII characters (they balloon URL encoding)
   return prompt
-    .replace(/[\u{1F600}-\u{1F9FF}]/gu, '')   // emoticons
-    .replace(/[\u{2600}-\u{27BF}]/gu, '')      // symbols
-    .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')    // misc symbols
-    .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')    // transport
-    .replace(/[\u{1FA00}-\u{1FA6F}]/gu, '')    // extended
-    .replace(/[\u{1FA70}-\u{1FAFF}]/gu, '')    // extended-A
-    .replace(/[\u{FE00}-\u{FE0F}]/gu, '')      // variation selectors
-    .replace(/[\u{200D}]/gu, '')               // zero-width joiner
-    .replace(/[^\x20-\x7E]/g, ' ')             // keep only printable ASCII
-    .replace(/\s+/g, ' ')                       // collapse whitespace
+    .replace(/[\u{1F600}-\u{1F9FF}]/gu, '')
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')
+    .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+    .replace(/[\u{1FA00}-\u{1FA6F}]/gu, '')
+    .replace(/[\u{1FA70}-\u{1FAFF}]/gu, '')
+    .replace(/[\u{FE00}-\u{FE0F}]/gu, '')
+    .replace(/[\u{200D}]/gu, '')
+    .replace(/[^\x20-\x7E]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -23,30 +23,26 @@ export async function generateImageViaPollinations(
   height: number = 1024
 ): Promise<string> {
   const sanitized = sanitizePrompt(prompt);
-  const seed = Math.floor(Math.random() * 999999);
 
-  // Progressive attempts with shorter prompts and smaller dimensions
+  // Progressive attempts: different prompt lengths, dimensions, and endpoints
   const attempts = [
-    { prompt: sanitized.slice(0, 350), w: Math.min(width, 1024), h: Math.min(height, 1024), model: 'flux' },
-    { prompt: sanitized.slice(0, 200), w: 768, h: 768, model: 'flux' },
-    { prompt: sanitized.slice(0, 120), w: 512, h: 512, model: 'flux' },
+    // Try without width/height first (most reliable)
+    { prompt: sanitized.slice(0, 200), params: '' },
+    // Try with small dimensions
+    { prompt: sanitized.slice(0, 150), params: '?width=512&height=512' },
+    // Minimal prompt, no extra params
+    { prompt: sanitized.slice(0, 80), params: '' },
   ];
 
   for (let i = 0; i < attempts.length; i++) {
     const a = attempts[i];
     const encodedPrompt = encodeURIComponent(a.prompt);
-    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${a.w}&height=${a.h}&nologo=true&seed=${seed + i}&model=${a.model}`;
-
-    // Skip if encoded URL is absurdly long
-    if (url.length > 2000) {
-      console.warn(`[Pollinations] Attempt ${i + 1} URL too long (${url.length}), shortening...`);
-      continue;
-    }
+    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}${a.params}`;
 
     try {
       console.log(`[Pollinations] Attempt ${i + 1} (${a.prompt.length} chars)...`);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 120000);
+      const timeout = setTimeout(() => controller.abort(), 60000);
 
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
@@ -58,7 +54,7 @@ export async function generateImageViaPollinations(
 
       const blob = await response.blob();
       if (blob.size < 1000) {
-        console.warn(`[Pollinations] Response too small (${blob.size} bytes), retrying...`);
+        console.warn(`[Pollinations] Response too small (${blob.size} bytes)`);
         continue;
       }
 
@@ -73,7 +69,7 @@ export async function generateImageViaPollinations(
     }
   }
 
-  throw new Error('Pollinations: all attempts failed. Try a shorter/simpler prompt or use another provider.');
+  throw new Error('Pollinations is currently unavailable (server errors). Please try Puter.js or another provider instead.');
 }
 
 export function getPollinationsDirectUrl(
@@ -81,10 +77,9 @@ export function getPollinationsDirectUrl(
   width: number = 1024,
   height: number = 1024
 ): string {
-  const sanitized = sanitizePrompt(prompt).slice(0, 200);
+  const sanitized = sanitizePrompt(prompt).slice(0, 150);
   const encodedPrompt = encodeURIComponent(sanitized);
-  const seed = Math.floor(Math.random() * 999999);
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${Math.min(width, 1024)}&height=${Math.min(height, 1024)}&nologo=true&seed=${seed}&model=flux`;
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}`;
 }
 
 export function getPollinationsStatus(): 'available' {
